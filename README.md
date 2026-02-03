@@ -72,8 +72,5 @@ Party A: partyA1@example.com / pass123
 Party B: partyB1@example.com / pass123
 Notary: notary1@example.com / pass123
 
-           # schema.prisma, migrations, seed.ts
-├── public/                 # Static files
-├── docker-compose.yml      # DocuSeal only
 
-└── .env.example
+
