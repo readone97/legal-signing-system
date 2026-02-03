@@ -75,19 +75,3 @@ Party A: partyA1@example.com / pass123
 Party B: partyB1@example.com / pass123
 Notary: notary1@example.com / pass123
 
-Project Structure
-textprenup-sign/
-├── app/                    # Next.js App Router
-│   ├── api/                # API routes
-│   ├── create/             # Document creation
-│   ├── dashboard/          # Main dashboard
-│   ├── sign/[id]/          # Signing interface
-│   ├── notary/             # Notary dashboard
-│   └── api-docs/           # Swagger UI
-├── components/             # Reusable UI (SignaturePad, DocumentPreview, etc.)
-├── lib/                    # Utilities (db, s3, resend, swagger)
-├── models/                 # (optional future Mongoose if switched)
-├── prisma/                 # schema.prisma, migrations, seed.ts
-├── public/                 # Static files
-├── docker-compose.yml      # DocuSeal only
-└── .env.example
