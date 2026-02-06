@@ -1,3 +1,4 @@
+"use client";
 // components/ErrorBoundary.tsx
 import React from 'react';
 
