@@ -1,0 +1,183 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PARTY_A
+  PARTY_B
+  NOTARY
+  ADMIN
+}
+
+enum DocumentStatus {
+  DRAFT
+  PENDING_PARTY_B
+  PENDING_NOTARY
+  COMPLETED
+  CANCELLED
+}
+
+enum SignatureType {
+  DRAW
+  TYPE
+  UPLOAD
+}
+
+enum AuditAction {
+  DOCUMENT_CREATED
+  DOCUMENT_UPDATED
+  DOCUMENT_SENT
+  SIGNATURE_ADDED
+  NOTARIZATION_COMPLETED
+  DOCUMENT_CANCELLED
+  USER_LOGIN
+  USER_LOGOUT
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String
+  firstName         String
+  lastName          String
+  role              UserRole  @default(PARTY_A)
+  phoneNumber       String?
+  isEmailVerified   Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  
+  // Notary-specific fields
+  notaryLicense     String?
+  notaryState       String?
+  notaryExpiration  DateTime?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Relations
+  documentsCreated  Document[] @relation("DocumentCreator")
+  documentsAsPartyB Document[] @relation("DocumentPartyB")
+  documentsAsNotary Document[] @relation("DocumentNotary")
+  signatures        Signature[]
+  auditLogs         AuditLog[]
+  refreshTokens     RefreshToken[]
+  
+  @@index([email])
+  @@index([role])
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([token])
+}
+
+model Document {
+  id              String         @id @default(uuid())
+  title           String
+  documentType    String         @default("PRENUPTIAL_AGREEMENT")
+  status          DocumentStatus @default(DRAFT)
+  version         Int            @default(1)
+  
+  // Parties
+  partyAId        String
+  partyA          User           @relation("DocumentCreator", fields: [partyAId], references: [id])
+  partyBId        String?
+  partyB          User?          @relation("DocumentPartyB", fields: [partyBId], references: [id])
+  notaryId        String?
+  notary          User?          @relation("DocumentNotary", fields: [notaryId], references: [id])
+  
+  // Document content
+  templateFields  Json           // Store field definitions
+  fieldValues     Json           // Store filled values
+  
+  // Tracking
+  partyASignedAt  DateTime?
+  partyBSignedAt  DateTime?
+  notarizedAt     DateTime?
+  completedAt     DateTime?
+  
+  // Files
+  pdfUrl          String?
+  certificateUrl  String?
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  // Relations
+  signatures      Signature[]
+  revisions       DocumentRevision[]
+  auditLogs       AuditLog[]
+  
+  @@index([partyAId])
+  @@index([partyBId])
+  @@index([notaryId])
+  @@index([status])
+}
+
+model Signature {
+  id             String        @id @default(uuid())
+  documentId     String
+  document       Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User          @relation(fields: [userId], references: [id])
+  
+  signatureType  SignatureType
+  signatureData  String        // Base64 encoded image or typed text
+  
+  ipAddress      String
+  userAgent      String?
+  
+  createdAt      DateTime      @default(now())
+  
+  @@index([documentId])
+  @@index([userId])
+}
+
+model DocumentRevision {
+  id           String   @id @default(uuid())
+  documentId   String
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  version      Int
+  fieldValues  Json
+  changedBy    String
+  changeNote   String?
+  
+  createdAt    DateTime @default(now())
+  
+  @@index([documentId])
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  action      AuditAction
+  
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+  documentId  String?
+  document    Document?   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  ipAddress   String
+  userAgent   String?
+  metadata    Json?       // Additional context
+  
+  createdAt   DateTime    @default(now())
+  
+  @@index([userId])
+  @@index([documentId])
+  @@index([action])
+  @@index([createdAt])
+}
