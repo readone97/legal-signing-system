@@ -8,6 +8,10 @@ interface FormData {
   title: string;
   partyAFullName: string;
   partyBFullName: string;
+  partyAAddress: string;
+  partyBAddress: string;
+  partyADOB: string;
+  partyBDOB: string;
   weddingDate: string;
   partyAAssets: string;
   partyBAssets: string;
@@ -29,6 +33,10 @@ const DocumentCreate: React.FC = () => {
     fields: [
       { id: 'partyAFullName', label: 'Party A Full Legal Name', type: 'text', required: true },
       { id: 'partyBFullName', label: 'Party B Full Legal Name', type: 'text', required: true },
+      { id: 'partyAAddress', label: 'Party A Address', type: 'text', required: true },
+      { id: 'partyBAddress', label: 'Party B Address', type: 'text', required: true },
+      { id: 'partyADOB', label: 'Party A Date of Birth', type: 'date', required: true },
+      { id: 'partyBDOB', label: 'Party B Date of Birth', type: 'date', required: true },
       { id: 'weddingDate', label: 'Proposed Wedding Date', type: 'date', required: true },
       { id: 'partyAAssets', label: 'Party A Separate Assets', type: 'textarea', required: true },
       { id: 'partyBAssets', label: 'Party B Separate Assets', type: 'textarea', required: true },
@@ -53,6 +61,10 @@ const DocumentCreate: React.FC = () => {
         fieldValues: {
           partyAFullName: data.partyAFullName,
           partyBFullName: data.partyBFullName,
+          partyAAddress: data.partyAAddress,
+          partyBAddress: data.partyBAddress,
+          partyADOB: data.partyADOB,
+          partyBDOB: data.partyBDOB,
           weddingDate: data.weddingDate,
           partyAAssets: data.partyAAssets,
           partyBAssets: data.partyBAssets,
@@ -159,6 +171,64 @@ const DocumentCreate: React.FC = () => {
                   />
                   {errors.partyBFullName && (
                     <p className="mt-1 text-sm text-red-600">{errors.partyBFullName.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Party A Address *
+                  </label>
+                  <input
+                    type="text"
+                    {...register('partyAAddress', { required: 'Party A address is required' })}
+                    className="input-field"
+                    placeholder="123 Main St, City, State ZIP"
+                  />
+                  {errors.partyAAddress && (
+                    <p className="mt-1 text-sm text-red-600">{errors.partyAAddress.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Party B Address *
+                  </label>
+                  <input
+                    type="text"
+                    {...register('partyBAddress', { required: 'Party B address is required' })}
+                    className="input-field"
+                    placeholder="456 Oak Ave, City, State ZIP"
+                  />
+                  {errors.partyBAddress && (
+                    <p className="mt-1 text-sm text-red-600">{errors.partyBAddress.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Party A Date of Birth *
+                  </label>
+                  <input
+                    type="date"
+                    {...register('partyADOB', { required: 'Party A DOB is required' })}
+                    className="input-field"
+                  />
+                  {errors.partyADOB && (
+                    <p className="mt-1 text-sm text-red-600">{errors.partyADOB.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Party B Date of Birth *
+                  </label>
+                  <input
+                    type="date"
+                    {...register('partyBDOB', { required: 'Party B DOB is required' })}
+                    className="input-field"
+                  />
+                  {errors.partyBDOB && (
+                    <p className="mt-1 text-sm text-red-600">{errors.partyBDOB.message}</p>
                   )}
                 </div>
 

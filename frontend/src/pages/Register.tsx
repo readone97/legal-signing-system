@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { UserRole } from '../types';
+import { UserRole } from '../types/types';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({

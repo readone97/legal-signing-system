@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
-import { Document, DocumentStatus } from '../types';
+import { Document, DocumentStatus } from '../types/types';
 import { toast } from 'react-toastify';
 
 const Dashboard: React.FC = () => {

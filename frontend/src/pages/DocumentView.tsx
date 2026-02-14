@@ -4,7 +4,8 @@ import { toast } from 'react-toastify';
 import SignatureCanvas from 'react-signature-canvas';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
-import { Document, DocumentStatus, SignatureType } from '../types';
+import DocuSealEmbed from '../components/DocuSealEmbed';
+import { Document, DocumentStatus, SignatureType } from '../types/types';
 
 const DocumentView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,9 @@ const DocumentView: React.FC = () => {
   const [notaries, setNotaries] = useState<any[]>([]);
   const [selectedNotary, setSelectedNotary] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [docusealEmbedUrl, setDocusealEmbedUrl] = useState<string | null>(null);
+  const [docusealLoading, setDocusealLoading] = useState(false);
+  const [creatingDocuseal, setCreatingDocuseal] = useState(false);
   
   const sigCanvas = useRef<SignatureCanvas>(null);
 
@@ -28,6 +32,102 @@ const DocumentView: React.FC = () => {
     loadDocument();
     loadNotaries();
   }, [id]);
+
+  useEffect(() => {
+    if (!document || !user || !document.docusealSubmissionId) {
+      setDocusealEmbedUrl(null);
+      return;
+    }
+    const isSigner =
+      document.partyAId === user.id ||
+      document.partyBId === user.id ||
+      document.notaryId === user.id;
+    if (!isSigner) return;
+    loadDocusealEmbed();
+  }, [document?.id, document?.docusealSubmissionId, user?.id]);
+
+  const loadDocusealEmbed = async () => {
+    if (!id) return;
+    setDocusealLoading(true);
+    try {
+      const res = await api.get(`/documents/${id}/docuseal/embed`);
+      setDocusealEmbedUrl(res.data.data.embedUrl || res.data.data.embedSrc);
+    } catch {
+      setDocusealEmbedUrl(null);
+    } finally {
+      setDocusealLoading(false);
+    }
+  };
+
+  const handleCreateDocusealSubmission = async () => {
+    if (!id) return;
+    setCreatingDocuseal(true);
+    try {
+      await api.post(`/documents/${id}/docuseal/create-submission`, { sendEmail: true });
+      toast.success('DocuSeal signing request created');
+      await loadDocument();
+      await loadDocusealEmbed();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to create DocuSeal submission');
+    } finally {
+      setCreatingDocuseal(false);
+    }
+  };
+
+  const handleDocusealComplete = () => {
+    toast.success('Document signed via DocuSeal');
+    loadDocument();
+    setDocusealEmbedUrl(null);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/documents/${id}/download`, { responseType: 'blob' });
+      const disposition = res.headers['content-disposition'];
+      const match = disposition?.match(/filename="?([^";\n]+)"?/);
+      const filename = match ? match[1].trim() : `document-${id}.txt`;
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.setAttribute('download', filename);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Download started');
+    } catch (err: any) {
+      let message = 'Failed to download';
+      const data = err.response?.data;
+      if (data instanceof Blob) {
+        try {
+          const text = await data.text();
+          const json = text ? JSON.parse(text) : {};
+          if (json.message) message = json.message;
+        } catch {
+          // keep default message
+        }
+      } else if (data?.message) {
+        message = data.message;
+      }
+      toast.error(message);
+    }
+  };
+
+  const handleDownloadSignedDocuseal = async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/documents/${id}/docuseal/signed-documents`);
+      const docs = res.data?.data?.documents || [];
+      if (docs.length > 0 && docs[0].url) {
+        window.open(docs[0].url, '_blank');
+      } else {
+        toast.info('No signed documents available yet.');
+      }
+    } catch {
+      toast.error('Failed to get signed documents');
+    }
+  };
 
   const loadDocument = async () => {
     try {
@@ -67,7 +167,7 @@ const DocumentView: React.FC = () => {
         return;
       }
       // Create a canvas with typed text
-      const canvas = document.createElement('canvas');
+      const canvas = window.document.createElement('canvas');
       canvas.width = 400;
       canvas.height = 100;
       const ctx = canvas.getContext('2d');
@@ -200,7 +300,7 @@ const DocumentView: React.FC = () => {
     return (
       document &&
       user &&
-      document.status === DocumentStatus.PENDING_PARTY_B &&
+      (document.status === DocumentStatus.PENDING_PARTY_B || document.status === DocumentStatus.PENDING_NOTARY) &&
       document.partyASignedAt &&
       document.partyBSignedAt &&
       !document.notaryId
@@ -263,11 +363,37 @@ const DocumentView: React.FC = () => {
               </p>
             </div>
 
-            {/* Document Fields */}
+            {/* DocuSeal embedded signing form */}
+            {docusealLoading && (
+              <div className="card">
+                <p className="text-gray-600">Loading DocuSeal signing form...</p>
+              </div>
+            )}
+            {docusealEmbedUrl && !docusealLoading && (
+              <div className="card">
+                <h2 className="text-xl font-display font-bold text-gray-900 mb-4">
+                  Sign with DocuSeal
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Complete the form below to sign this document. Your signature will be recorded and the document will be updated when finished.
+                </p>
+                <DocuSealEmbed
+                  src={docusealEmbedUrl}
+                  onComplete={handleDocusealComplete}
+                  title="DocuSeal signing form"
+                />
+              </div>
+            )}
+
+            {/* Document Preview (before signing) */}
             <div className="card">
               <h2 className="text-xl font-display font-bold text-gray-900 mb-6">
-                Document Details
+                Document Preview
               </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Review the document details below before signing. Once all parties have signed and the document is notarized, it will be complete.
+              </p>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Document Details</h3>
               <div className="space-y-6">
                 {Object.entries(document.fieldValues).map(([key, value]) => {
                   const field = document.templateFields.fields.find((f: any) => f.id === key);
@@ -285,15 +411,18 @@ const DocumentView: React.FC = () => {
               </div>
             </div>
 
-            {/* Signatures */}
+            {/* Signature blocks (Party A, Party B, Notary) */}
             {document.signatures && document.signatures.length > 0 && (
               <div className="card">
                 <h2 className="text-xl font-display font-bold text-gray-900 mb-6">
-                  Signatures
+                  Signature Blocks
                 </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Signatures for Party A, Party B, and Notary. Each signature is timestamped (ISO 8601) and IP-logged for the audit trail.
+                </p>
                 <div className="space-y-4">
                   {document.signatures.map((sig) => (
-                    <div key={sig.id} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+                    <div key={sig.id} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="flex-shrink-0">
                         <img
                           src={sig.signatureData}
@@ -302,11 +431,14 @@ const DocumentView: React.FC = () => {
                         />
                       </div>
                       <div className="flex-1">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          {sig.user?.role === 'PARTY_A' ? 'Party A signature block' : sig.user?.role === 'PARTY_B' ? 'Party B signature block' : 'Notary seal/signature block'}
+                        </p>
                         <p className="font-semibold text-gray-900">
                           {sig.user?.firstName} {sig.user?.lastName}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {sig.user?.role} • Signed on {new Date(sig.createdAt).toLocaleString()}
+                          Signed on {new Date(sig.createdAt).toISOString()}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           IP: {sig.ipAddress}
@@ -385,7 +517,7 @@ const DocumentView: React.FC = () => {
                   Actions
                 </h3>
 
-                {canSign() && (
+                {canSign() && !document.docusealSubmissionId && (
                   <button
                     onClick={() => setShowSignModal(true)}
                     className="btn-primary w-full"
@@ -394,6 +526,16 @@ const DocumentView: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                     Sign Document
+                  </button>
+                )}
+
+                {document.partyAId === user?.id && !document.docusealSubmissionId && (document.status === DocumentStatus.DRAFT || document.status === DocumentStatus.PENDING_PARTY_B) && (
+                  <button
+                    onClick={handleCreateDocusealSubmission}
+                    disabled={creatingDocuseal}
+                    className="btn-primary w-full bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {creatingDocuseal ? 'Creating...' : 'Sign with DocuSeal'}
                   </button>
                 )}
 
@@ -421,7 +563,19 @@ const DocumentView: React.FC = () => {
                   </button>
                 )}
 
-                <button className="btn-secondary w-full">
+                {document.docusealSubmissionId && document.status === DocumentStatus.COMPLETED && (
+                  <button
+                    type="button"
+                    onClick={handleDownloadSignedDocuseal}
+                    className="btn-secondary w-full"
+                  >
+                    <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download signed (DocuSeal)
+                  </button>
+                )}
+                <button type="button" onClick={handleDownloadPdf} className="btn-secondary w-full">
                   <svg className="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>

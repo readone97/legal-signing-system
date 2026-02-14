@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import SignatureCanvas from 'react-signature-canvas';
 import { AuthContext } from '../contexts/AuthContext';
 import api from '../services/api';
-import { Document, SignatureType } from '../types';
+import { Document, SignatureType } from '../types/types';
 
 const NotaryDashboard: React.FC = () => {
   const { user, logout } = useContext(AuthContext);
@@ -112,6 +112,9 @@ const NotaryDashboard: React.FC = () => {
         signatureType,
         signatureData,
         verificationNotes,
+        identityVerified,
+        signaturesVerified,
+        documentComplete,
       });
       
       toast.success('Document notarized successfully! ⚖️');
