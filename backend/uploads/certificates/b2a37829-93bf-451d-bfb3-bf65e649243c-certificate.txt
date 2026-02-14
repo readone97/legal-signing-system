@@ -1,0 +1,15 @@
+NOTARIZATION CERTIFICATE
+Document ID: b2a37829-93bf-451d-bfb3-bf65e649243c
+Title: Prenuptial Agreement - Historical Document
+
+This certifies that on 2023-10-25T11:00:00.000Z (ISO 8601), the following parties executed this document:
+
+Party A (Initiator): Alice Johnson
+Party B (Counter-signer): Diana Martinez
+
+The document was notarized by:
+Notary: Emily Thompson
+License: NOT-12345-CA
+State: California
+
+This certificate is generated as a digital record of the notarization.

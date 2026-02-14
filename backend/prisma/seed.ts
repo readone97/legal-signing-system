@@ -98,11 +98,15 @@ async function main() {
 
   console.log(`✅ Created ${users.length} users`);
 
-  // Prenuptial Agreement Template
+  // Prenuptial Agreement Template (Party info, 5+ asset/financial fields, spousal support, signature blocks)
   const prenupTemplate = {
     fields: [
       { id: 'partyAFullName', label: 'Party A Full Legal Name', type: 'text', required: true },
       { id: 'partyBFullName', label: 'Party B Full Legal Name', type: 'text', required: true },
+      { id: 'partyAAddress', label: 'Party A Address', type: 'text', required: true },
+      { id: 'partyBAddress', label: 'Party B Address', type: 'text', required: true },
+      { id: 'partyADOB', label: 'Party A Date of Birth', type: 'date', required: true },
+      { id: 'partyBDOB', label: 'Party B Date of Birth', type: 'date', required: true },
       { id: 'weddingDate', label: 'Proposed Wedding Date', type: 'date', required: true },
       { id: 'partyAAssets', label: 'Party A Separate Assets', type: 'textarea', required: true },
       { id: 'partyBAssets', label: 'Party B Separate Assets', type: 'textarea', required: true },
@@ -131,6 +135,10 @@ async function main() {
         fieldValues: {
           partyAFullName: 'Alice Marie Johnson',
           partyBFullName: 'Robert James Smith',
+          partyAAddress: '123 Oak Street, Los Angeles, CA 90001',
+          partyBAddress: '456 Tech Park Dr, Austin, TX 78701',
+          partyADOB: '1990-03-15',
+          partyBDOB: '1988-07-22',
           weddingDate: '2024-06-15',
           partyAAssets: 'Residence at 123 Oak Street, Investment portfolio worth $250,000, Retirement account',
           partyBAssets: 'Business ownership in Tech Solutions Inc., Real estate property in Austin, TX',
@@ -162,6 +170,10 @@ async function main() {
         fieldValues: {
           partyAFullName: 'Charles Edward Davis',
           partyBFullName: 'Diana Sofia Martinez',
+          partyAAddress: '789 Innovation Way, New York, NY 10001',
+          partyBAddress: '321 Medical Center Blvd, New York, NY 10002',
+          partyADOB: '1985-11-08',
+          partyBDOB: '1987-01-30',
           weddingDate: '2024-08-20',
           partyAAssets: 'Startup company equity, Personal savings $150,000',
           partyBAssets: 'Medical practice, Investment properties',
@@ -190,6 +202,10 @@ async function main() {
         fieldValues: {
           partyAFullName: 'Alice Marie Johnson',
           partyBFullName: 'Robert James Smith',
+          partyAAddress: '123 Oak Street, Los Angeles, CA 90001',
+          partyBAddress: '456 Tech Park Dr, Austin, TX 78701',
+          partyADOB: '1990-03-15',
+          partyBDOB: '1988-07-22',
           weddingDate: '2025-03-15',
           partyAAssets: 'Real estate holdings, Investment accounts totaling $500,000',
           partyBAssets: 'Software company ownership, Cryptocurrency portfolio',
@@ -243,6 +259,10 @@ async function main() {
         fieldValues: {
           partyAFullName: 'Alice Marie Johnson',
           partyBFullName: 'Diana Sofia Martinez',
+          partyAAddress: '123 Oak Street, Los Angeles, CA 90001',
+          partyBAddress: '321 Medical Center Blvd, New York, NY 10002',
+          partyADOB: '1990-03-15',
+          partyBDOB: '1987-01-30',
           weddingDate: '2023-12-10',
           partyAAssets: 'Condominium, Stock portfolio',
           partyBAssets: 'Medical license, Retirement accounts',

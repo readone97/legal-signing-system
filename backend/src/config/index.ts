@@ -38,4 +38,11 @@ export const config = {
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     credentials: true,
   },
+
+  docuseal: {
+    apiUrl: process.env.DOCUSEAL_API_URL || 'https://api.docuseal.com',
+    apiKey: process.env.DOCUSEAL_API_KEY || '',
+    formBaseUrl: process.env.DOCUSEAL_FORM_BASE_URL || 'https://docuseal.co',
+    defaultTemplateId: process.env.DOCUSEAL_DEFAULT_TEMPLATE_ID || null,
+  },
 };

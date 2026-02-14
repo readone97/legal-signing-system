@@ -21,8 +21,11 @@ export const getPendingDocuments = async (req: AuthRequest, res: Response) => {
 
     const documents = await prisma.document.findMany({
       where: {
-        notaryId: req.user.id,
         status: DocumentStatus.PENDING_NOTARY,
+        OR: [
+          { notaryId: req.user.id },
+          { notaryId: null },
+        ],
       },
       include: {
         partyA: {
@@ -97,7 +100,7 @@ export const notarizeDocument = async (req: AuthRequest, res: Response) => {
       throw new AppError('Document not found', 404);
     }
 
-    if (document.notaryId !== req.user.id) {
+    if (document.notaryId != null && document.notaryId !== req.user.id) {
       throw new AppError('You are not assigned to notarize this document', 403);
     }
 
@@ -121,12 +124,13 @@ export const notarizeDocument = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // Update document
+    // Update document (assign notary if was unassigned)
     const now = new Date();
     const updatedDocument = await prisma.document.update({
       where: { id: documentId },
       data: {
         status: DocumentStatus.COMPLETED,
+        notaryId: document.notaryId ?? req.user.id,
         notarizedAt: now,
         completedAt: now,
       },
@@ -150,6 +154,9 @@ export const notarizeDocument = async (req: AuthRequest, res: Response) => {
       userAgent: req.get('user-agent'),
       metadata: {
         verificationNotes: validatedData.verificationNotes,
+        identityVerified: validatedData.identityVerified,
+        signaturesVerified: validatedData.signaturesVerified,
+        documentComplete: validatedData.documentComplete,
       },
     });
 
@@ -196,8 +203,11 @@ export const getNotaryStats = async (req: AuthRequest, res: Response) => {
     const [pending, completed, total] = await Promise.all([
       prisma.document.count({
         where: {
-          notaryId: req.user.id,
           status: DocumentStatus.PENDING_NOTARY,
+          OR: [
+            { notaryId: req.user.id },
+            { notaryId: null },
+          ],
         },
       }),
       prisma.document.count({
@@ -208,7 +218,10 @@ export const getNotaryStats = async (req: AuthRequest, res: Response) => {
       }),
       prisma.document.count({
         where: {
-          notaryId: req.user.id,
+          OR: [
+            { notaryId: req.user.id },
+            { status: DocumentStatus.PENDING_NOTARY, notaryId: null },
+          ],
         },
       }),
     ]);

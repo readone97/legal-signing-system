@@ -3,11 +3,15 @@ import { PrismaClient, DocumentStatus } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { AppError } from '../middleware/errorHandler';
 import { createAuditLog } from '../utils/audit';
+import path from 'path';
+import fs from 'fs';
 import {
   sendDocumentInvitationEmail,
   sendDocumentReadyForNotaryEmail,
   // sendDocumentCompletedEmail,
 } from '../services/email.service';
+import { generatePDF } from '../services/pdf.service';
+import { config } from '../config';
 import {
   createDocumentSchema,
   updateDocumentSchema,
@@ -245,23 +249,38 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
       throw new AppError('Cannot update document after it has been sent', 400);
     }
 
-    const updatedDocument = await prisma.document.update({
-      where: { id },
-      data: {
-        title: validatedData.title,
-        fieldValues: validatedData.fieldValues,
-      },
-      include: {
-        partyA: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
+    const newVersion = document.version + 1;
+    const newFieldValues = validatedData.fieldValues ?? document.fieldValues;
+
+    const [, updatedDocument] = await prisma.$transaction([
+      prisma.documentRevision.create({
+        data: {
+          documentId: id,
+          version: document.version,
+          fieldValues: (document.fieldValues ?? {}) as object,
+          changedBy: req.user!.id,
+          changeNote: `Version ${newVersion} – updated by document creator`,
+        },
+      }),
+      prisma.document.update({
+        where: { id },
+        data: {
+          title: validatedData.title,
+          fieldValues: (newFieldValues ?? {}) as object,
+          version: newVersion,
+        },
+        include: {
+          partyA: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
 
     await createAuditLog({
       action: 'DOCUMENT_UPDATED',
@@ -384,8 +403,9 @@ export const sendToNotary = async (req: AuthRequest, res: Response) => {
       throw new AppError('Access denied', 403);
     }
 
-    if (document.status !== DocumentStatus.PENDING_PARTY_B) {
-      throw new AppError('Both parties must sign before sending to notary', 400);
+    const allowedStatuses: DocumentStatus[] = [DocumentStatus.PENDING_PARTY_B, DocumentStatus.PENDING_NOTARY];
+    if (!allowedStatuses.includes(document.status)) {
+      throw new AppError('Document must be signed by both parties before sending to notary', 400);
     }
 
     if (!document.partyASignedAt || !document.partyBSignedAt) {
@@ -404,7 +424,7 @@ export const sendToNotary = async (req: AuthRequest, res: Response) => {
       where: { id },
       data: {
         notaryId: notary.id,
-        status: DocumentStatus.PENDING_NOTARY,
+        status: DocumentStatus.PENDING_NOTARY, // ensure PENDING_NOTARY whether coming from PENDING_PARTY_B or already PENDING_NOTARY
       },
       include: {
         partyA: true,
@@ -472,6 +492,92 @@ export const deleteDocument = async (req: AuthRequest, res: Response) => {
       success: true,
       message: 'Document deleted successfully',
     });
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Download document as file (certificate for completed docs, otherwise summary text).
+ */
+export const downloadDocument = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.user) {
+      throw new AppError('Not authenticated', 401);
+    }
+
+    const document = await prisma.document.findUnique({
+      where: { id },
+      include: {
+        partyA: { select: { firstName: true, lastName: true } },
+        partyB: { select: { firstName: true, lastName: true } },
+        notary: { select: { firstName: true, lastName: true, notaryLicense: true, notaryState: true } },
+      },
+    });
+
+    if (!document) {
+      throw new AppError('Document not found', 404);
+    }
+
+    const hasAccess =
+      document.partyAId === req.user.id ||
+      document.partyBId === req.user.id ||
+      document.notaryId === req.user.id;
+    if (!hasAccess) {
+      throw new AppError('Access denied', 403);
+    }
+
+    const uploadDir = path.resolve(process.cwd(), config.upload.uploadDir || './uploads');
+
+    if (document.status === DocumentStatus.COMPLETED && document.certificateUrl) {
+      const certPath = path.resolve(process.cwd(), document.certificateUrl.replace(/^\//, ''));
+      if (fs.existsSync(certPath)) {
+        const filename = `document-${document.id}-certificate.txt`;
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        const content = fs.readFileSync(certPath, 'utf8');
+        return res.send(content);
+      }
+    }
+
+    if (document.status === DocumentStatus.COMPLETED && !document.certificateUrl) {
+      const withRelations = await prisma.document.findUnique({
+        where: { id },
+        include: { partyA: true, partyB: true, notary: true },
+      });
+      if (withRelations) {
+        try {
+          await generatePDF(withRelations);
+        } catch (e) {
+          console.error('Certificate generation failed, falling back to summary:', e);
+        }
+        const certPath = path.join(uploadDir, 'certificates', `${document.id}-certificate.txt`);
+        if (fs.existsSync(certPath)) {
+          const filename = `document-${document.id}-certificate.txt`;
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+          const content = fs.readFileSync(certPath, 'utf8');
+          return res.send(content);
+        }
+      }
+    }
+
+    const fieldValues = (document.fieldValues ?? {}) as Record<string, unknown>;
+    const lines = [
+      `Document: ${document.title}`,
+      `Status: ${document.status}`,
+      `Created: ${document.createdAt}`,
+      '',
+      '--- Content ---',
+      ...Object.entries(fieldValues).map(([k, v]) => `${k}: ${String(v)}`),
+    ];
+    const summary = lines.join('\r\n');
+    const filename = `document-${document.id}-summary.txt`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(summary);
   } catch (error) {
     throw error;
   }

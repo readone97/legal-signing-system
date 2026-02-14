@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import { config } from './config';
 import authRoutes from './routes/auth.routes';
 import documentRoutes from './routes/document.routes';
+import docusealRoutes from './routes/docuseal.routes';
 import signatureRoutes from './routes/signature.routes';
 import notaryRoutes from './routes/notary.routes';
 import userRoutes from './routes/user.routes';
@@ -37,6 +38,7 @@ app.get("/health", (_req: Request, res: Response) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/documents/:id/docuseal', docusealRoutes);
 app.use('/api/signatures', signatureRoutes);
 app.use('/api/notary', notaryRoutes);
 app.use('/api/users', userRoutes);

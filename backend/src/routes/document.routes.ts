@@ -9,6 +9,7 @@ router.use(authenticate);
 
 router.post('/', asyncHandler(documentController.createDocument));
 router.get('/', asyncHandler(documentController.getDocuments));
+router.get('/:id/download', asyncHandler(documentController.downloadDocument));
 router.get('/:id', asyncHandler(documentController.getDocument));
 router.put('/:id', asyncHandler(documentController.updateDocument));
 router.delete('/:id', asyncHandler(documentController.deleteDocument));

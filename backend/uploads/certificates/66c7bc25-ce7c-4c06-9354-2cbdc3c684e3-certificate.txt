@@ -1,0 +1,15 @@
+NOTARIZATION CERTIFICATE
+Document ID: 66c7bc25-ce7c-4c06-9354-2cbdc3c684e3
+Title: Prenuptial Agreement - Jerry & Catherine
+
+This certifies that on 2026-02-14T18:01:32.148Z (ISO 8601), the following parties executed this document:
+
+Party A (Initiator): jerry richard
+Party B (Counter-signer): Diana Martinez
+
+The document was notarized by:
+Notary: Emily Thompson
+License: NOT-12345-CA
+State: California
+
+This certificate is generated as a digital record of the notarization.
