@@ -88,12 +88,12 @@ const DocumentView: React.FC = () => {
       const match = disposition?.match(/filename="?([^";\n]+)"?/);
       const filename = match ? match[1].trim() : `document-${id}.txt`;
       const url = window.URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.setAttribute('download', filename);
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const anchor = window.document.createElement('a');
+      anchor.href = url;
+      anchor.setAttribute('download', filename);
+      window.document.body.appendChild(anchor);
+      anchor.click();
+      window.document.body.removeChild(anchor);
       window.URL.revokeObjectURL(url);
       toast.success('Download started');
     } catch (err: any) {

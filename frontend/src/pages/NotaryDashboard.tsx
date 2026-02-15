@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import SignatureCanvas from 'react-signature-canvas';
 import { AuthContext } from '../contexts/AuthContext';
@@ -8,8 +8,7 @@ import { Document, SignatureType } from '../types/types';
 
 const NotaryDashboard: React.FC = () => {
   const { user, logout } = useContext(AuthContext);
-  const navigate = useNavigate();
-  
+
   const [documents, setDocuments] = useState<Document[]>([]);
   const [stats, setStats] = useState({ pending: 0, completed: 0, total: 0 });
   const [loading, setLoading] = useState(true);
