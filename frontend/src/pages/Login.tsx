@@ -112,18 +112,18 @@ const Login: React.FC = () => {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
+           {/* Divider */}
+          {/* <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-white text-gray-500">Quick Demo Login</span>
             </div>
-          </div>
+          </div> */}
 
           {/* Sample Users */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             {sampleUsers.map((user) => (
               <button
                 key={user.email}
@@ -135,7 +135,7 @@ const Login: React.FC = () => {
                 <div className="text-gray-500 text-xs">{user.role} • password123</div>
               </button>
             ))}
-          </div>
+          </div> */}
 
           {/* Register Link */}
           <p className="mt-6 text-center text-gray-600">
