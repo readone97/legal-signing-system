@@ -577,7 +577,7 @@ export const downloadDocument = async (req: AuthRequest, res: Response) => {
     const filename = `document-${document.id}-summary.txt`;
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.send(summary);
+    return res.send(summary);
   } catch (error) {
     throw error;
   }
